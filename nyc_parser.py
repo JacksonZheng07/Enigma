@@ -286,7 +286,7 @@ def export_data_enigma_style(
             loc_records.append(entry)
         location_dict[entity_id] = loc_records
 
-    print(f"✅ Built {len(location_dict)} location groups")
+    print(f"Built {len(location_dict)} location groups")
 
     records: List[Dict[str, Any]] = []
     for _, row in entities.iterrows():
@@ -319,7 +319,7 @@ def export_data_enigma_style(
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(records, f, indent=2)
 
-    print(f"✅ Exported Enigma ontology: {output_path}")
+    print(f"Exported Enigma ontology: {output_path}")
     print(f"Total Entities Exported: {len(records)}")
 
 
