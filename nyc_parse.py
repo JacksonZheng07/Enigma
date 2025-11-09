@@ -249,7 +249,6 @@ def build_edges(licenses_df: pd.DataFrame, locations_df: pd.DataFrame) -> Tuple[
 
     return entity_license_edges, license_location_edges
 
-
 # Export Logic
 def export_data(
     entities: pd.DataFrame,
@@ -283,9 +282,11 @@ def export_data(
     e_edges.to_csv(f"{output_dir}/entity_license_edges_{today}.csv", index=False)
     l_edges.to_csv(f"{output_dir}/license_location_edges_{today}.csv", index=False)
 
-    print(f"Entities: {len(entities)}")
-    print(f"Licenses: {len(licenses)}")
-    print(f"Locations: {len(locations)}")
+    print(f"Entities: {entities.columns}")
+    print(f"Licenses: {licenses.columns}")
+    print(f"Locations: {locations.columns}")
+    print(f"E_edge: {e_edges.columns}")
+    print(f"l_egde: {l_edges.columns}")
 
 # Main Pipeline
 def main() -> None:
