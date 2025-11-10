@@ -22,7 +22,7 @@ def load_data(url: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Raw dataset loaded into memory.
     """
-    response = requests.get(url, verify=False)
+    response = requests.get(url, verify=False, timeout=30)
     df = pd.read_csv(io.StringIO(response.text), low_memory=False)
     print(f"Loaded dataset: {df.shape[0]} rows, {df.shape[1]} columns")
     return df
@@ -299,19 +299,6 @@ def export_data_enigma_style(
             "source_url": "https://data.cityofnewyork.us/Business/Active-Businesses/w7w3-xahh",
             "last_updated": datetime.today().strftime("%Y-%m-%dT%H:%M:%SZ")
         }
-
-        for lic in record["licenses"]:
-            lic["source"] = {
-                "source_name": "NYC Department of Consumer and Worker Protection",
-                "source_url": "https://data.cityofnewyork.us/resource/w7w3-xahh.json",
-                "last_updated": record["source"]["last_updated"]
-            }
-        for loc in record["locations"]:
-            loc["source"] = {
-                "source_name": "NYC Open Data Geocoding",
-                "source_url": "https://data.cityofnewyork.us/resource/geoclient",
-                "last_updated": record["source"]["last_updated"]
-            }
 
         records.append(record)
 
