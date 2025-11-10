@@ -141,13 +141,6 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df["Contact Phone"] = df["Contact Phone"].apply(clean_phone)
     df["fullAddress"] = df.apply(make_address, axis=1)
 
-    if borough_col:
-        df["fullAddress"] = df.apply(
-            lambda r: f"{r['fullAddress']} ({r[borough_col]})"
-            if pd.notna(r.get(borough_col)) else r["fullAddress"],
-            axis=1
-        )
-
     if "Address Type" in df.columns:
         df = df[df["Address Type"] == "Complete Address"]
 
@@ -222,8 +215,6 @@ def build_locations(df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: Location table (includes ZIP, borough, coordinates).
     """
     cols = ["Business Unique ID", "License Number", "fullAddress", "ZIP Code", "Latitude", "Longitude"]
-    if "Borough" in df.columns:
-        cols.append("Borough")
 
     locations = df[cols].copy()
     locations = locations.rename(columns={
@@ -327,7 +318,6 @@ def main() -> None:
     licenses = build_licenses(df)
     locations = build_locations(df)
     export_data_enigma_style(entities, licenses, locations)
-
 
 if __name__ == "__main__":
     main()
