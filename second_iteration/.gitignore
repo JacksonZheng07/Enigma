@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Environments
+.env
+.venv
+venv/
+.envrc
+
+# Distribution / build
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# Data artifacts
+data/processed/
+*.parquet
+*.csv
+*.json
+
+# IDE
+.vscode/
+.idea/
+.DS_Store

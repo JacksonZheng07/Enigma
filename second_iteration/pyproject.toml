@@ -1,0 +1,17 @@
+[project]
+name = "gov-data-pipeline"
+version = "0.1.0"
+description = "Reference architecture for a modular government data pipeline."
+readme = "README.md"
+authors = [{name = "Data Engineering Team", email = "data@example.gov"}]
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.0",
+    "pandas>=2.0",
+    "httpx>=0.26",
+]
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
