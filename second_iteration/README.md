@@ -16,7 +16,7 @@ Modular, testable pipeline skeleton for ingesting, normalizing, analyzing, and e
    Raw Data
       │
       ▼
-[1] Ingestion Layer       (CSV/JSON/XML → Python dicts)
+[1] Ingestion Layer       (CSV/JSON/XML → Pandas DataFrame)
       │
       ▼
 [2] Normalization Layer   (clean types, fix names)

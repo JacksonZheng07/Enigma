@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import pandas as pd
+import os
 
 from .loaders.api_loader import APILoader
 from .loaders.csv_loader import CSVLoader
@@ -47,6 +48,9 @@ class IngestManager:
 
         path = Path(source)
         file_type = FileDetector().detect_file_type(path)
+
+        if os.path.exists(path=path) is False:
+            raise FileNotFoundError
 
         #Raising Error if the file suffix isnt a .json or a .csv
         if file_type not in self.loaders:

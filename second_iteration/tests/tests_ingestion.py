@@ -1,7 +1,9 @@
 """
 Testing src/ingest.py
 """
-from src.ingestion.ingest_manager import IngestManager
+import sys
+sys.path.append('./src/')
+from ingestion.ingest import IngestManager
 import pandas as pd
 import unittest
 
@@ -16,10 +18,38 @@ class TestIngest(unittest.TestCase):
         """
         self.ingest = IngestManager()
 
-    def test_load_data(self) -> None:
+    def test_load_data_csv(self) -> None:
         """
-        Test load data function from IngestManger 
+        Testing load data function from ingest.py with .csv file
         """
-        df = self.ingest.load_data('../data/raw/testing_data.csv')
+        df = self.ingest.load_data('data/raw/testing_data.csv')
         self.assertIsInstance(df, pd.DataFrame)
-unittest.TestCase()
+
+    def test_load_data_json(self) -> None:
+        """
+        Testing load data function from ingest.py with .json file
+        """
+        df = self.ingest.load_data('data/raw/testing_data.json')
+        self.assertIsInstance(df, pd.DataFrame)
+
+    def test_load_data_api(self) -> None:
+        """
+        Testing Load data function from ingest.py
+        """
+
+    def test_bad_path(self) -> None:
+        """
+        Testing load data function from IngestManger with a bad path
+        """
+        with self.assertRaises(FileNotFoundError):
+            self.ingest.load_data('asdfghjkldata/raw/testing_data.csv')
+
+    def test_invalid_suffix(self) -> None:
+        """
+        Testing for when load data function is used on a file that isnt a 
+        API, .json or .csv
+        """
+        with self.assertRaises(ValueError):
+            self.ingest.load_data('data/raw/testing_data.txt')
+
+unittest.main()

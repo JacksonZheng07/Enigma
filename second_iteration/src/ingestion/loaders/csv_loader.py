@@ -6,7 +6,6 @@ from pathlib import Path
 import pandas as pd
 from .base_loader import BaseLoader
 
-
 class CSVLoader(BaseLoader):
     """
     Load a dataset from a CSV file into a pandas DataFrame.
