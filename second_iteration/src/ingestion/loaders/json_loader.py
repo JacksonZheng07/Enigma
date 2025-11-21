@@ -27,16 +27,26 @@ class JSONLoader(BaseLoader):
         pd.DataFrame
             A DataFrame containing the normalized dataset.
         """
+        import json
 
-        # Load raw JSON (could be list or dict)
-        raw = pd.read_json(source)
+        with open(source, "r", encoding="utf-8") as f:
+            payload = json.load(f)
 
-        # If it's already a DataFrame (list of objects)
-        if isinstance(raw, pd.DataFrame):
-            df = raw
+        if isinstance(payload, list):
+            df = pd.DataFrame(payload)
 
-        # If it's a dict or nested structure → flatten
+        elif isinstance(payload, dict):
+            df = pd.json_normalize(payload)
+            df = pd.DataFrame(df)
+
         else:
-            df = pd.json_normalize(raw)
+            raise TypeError(
+                f"Unsupported JSON structure. Expected list or dict, got {type(payload)}"
+            )
 
-        return df.astype(str)
+        df.astype(str)
+
+        if not isinstance(df, pd.DataFrame):
+            return pd.DataFrame(df)
+        
+        return df

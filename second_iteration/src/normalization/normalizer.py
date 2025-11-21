@@ -1,11 +1,46 @@
-"""Coordinates cleaning, aliasing, and type casting."""
+"""
+Coordinates cleaning, aliasing, and type casting.
+"""
 
 from __future__ import annotations
+import pandas as pd
+
+from .alias_mapper import AliasMapper
+from .cleaner import Cleaner
 
 
-class Normalizer:  # pragma: no cover - placeholder facade
-    """Sequentially applies the normalization primitives."""
+class Normalizer:
+    """ class that runs all normalization primitives sequentially."""
 
-    def normalize(self, records: list[dict[str, object]]) -> list[dict[str, object]]:
-        """Return normalized records."""
-        raise NotImplementedError("Add normalization pipeline")
+    @staticmethod
+    def normalize(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Run all normalization steps in the correct order.
+        ---------------------------------------------------------
+        Parameters:
+            df: pd.DataFrame
+
+        ---------------------------------------------------------
+        Return:
+            pd.DataFrame
+        """
+
+        df = AliasMapper.map_aliases(df)
+        df = Cleaner.fix_nulls(df)
+
+        columns = df.columns.to_list()
+
+        has_lat = "lat" in columns
+        has_lon = "lon" in columns
+        has_location = "location" in columns
+
+        if has_lat and has_lon or has_location:
+            df = Cleaner.clean_coordinates(df)
+
+        if 'zip' in columns:
+            df = Cleaner.clean_zip_codes(df)
+        if 'phone' in columns:
+            df = Cleaner.clean_phone_numbers(df)
+        if 'address' in columns:
+            df = Cleaner.clean_addresses(df)
+        return df

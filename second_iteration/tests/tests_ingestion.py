@@ -1,11 +1,10 @@
 """
 Testing src/ingest.py
 """
-import sys
-sys.path.append('./src/')
-from ingestion.ingest import IngestManager
-import pandas as pd
+
 import unittest
+import pandas as pd
+from ingestion.ingest import IngestManager
 
 class TestIngest(unittest.TestCase):
     """
