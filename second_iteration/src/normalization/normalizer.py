@@ -30,8 +30,8 @@ class Normalizer:
 
         columns = df.columns.to_list()
 
-        has_lat = "lat" in columns
-        has_lon = "lon" in columns
+        has_lat = any(col in {"lat", "latitude"} for col in columns)
+        has_lon = any(col in {"lon", "longitude"} for col in columns)
         has_location = "location" in columns
 
         if has_lat and has_lon or has_location:

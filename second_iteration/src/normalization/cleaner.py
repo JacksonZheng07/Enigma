@@ -36,7 +36,25 @@ class Cleaner():
         """
         Return a cleaned record copy.
         """
-        raise NotImplementedError("Implement cleaning rules")
+        if record is None:
+            return {}
+        if not isinstance(record, dict):
+            raise TypeError("record must be a dictionary")
+
+        cleaned: dict[str, object] = {}
+        for key, value in record.items():
+            if isinstance(value, str):
+                normalized = re.sub(r"\s+", " ", value).strip()
+                cleaned[key] = normalized if normalized else None
+                continue
+
+            if isinstance(value, float) and pd.isna(value):
+                cleaned[key] = None
+                continue
+
+            cleaned[key] = value
+
+        return cleaned
 
     @staticmethod
     def clean_coordinates(df: pd.DataFrame) -> pd.DataFrame:
@@ -49,10 +67,10 @@ class Cleaner():
             raise TypeError("Where the hell is my pd.Dataframe at")
 
         has_location = "location" in df.columns
-        has_lat = "lat" in df.columns
-        has_lon = "lon" in df.columns
 
-        # CASE 1: Location string "(lat, lon)"
+        location_lat = None
+        location_lon = None
+
         if has_location:
 
             def extract(pair):
@@ -61,21 +79,55 @@ class Cleaner():
                 try:
                     lat, lon = pair.strip("()").split(",")
                     return float(lat), float(lon)
-                except NameError:
+                except (ValueError, TypeError):
                     return None
 
             parsed = df["location"].apply(extract)
+            location_lat = parsed.apply(lambda x: x[0] if x else None)
+            location_lon = parsed.apply(lambda x: x[1] if x else None)
+            df = df.drop(columns=["location"])
 
-            df["lat"] = parsed.apply(lambda x: x[0] if x else None)
-            df["lon"] = parsed.apply(lambda x: x[1] if x else None)
-        df = df.drop(columns=["location"])
+        lat_sources = []
+        lon_sources = []
 
-        # CASE 2: Separate lat/lon columns and convert to floats
-        if has_lat:
-            df["lat"] = df["lat"].apply(lambda v: Cleaner._to_float(v))
+        if location_lat is not None:
+            lat_sources.append(location_lat)
+        if location_lon is not None:
+            lon_sources.append(location_lon)
 
-        if has_lon:
-            df["lon"] = df["lon"].apply(lambda v: Cleaner._to_float(v))
+        for column in ("latitude", "lat"):
+            if column in df.columns:
+                lat_sources.append(df[column].apply(Cleaner._to_float))
+        for column in ("longitude", "lon"):
+            if column in df.columns:
+                lon_sources.append(df[column].apply(Cleaner._to_float))
+
+        def coalesce(series_list):
+            merged = None
+            for series in series_list:
+                if merged is None:
+                    merged = series
+                else:
+                    merged = merged.combine_first(series)
+            return merged
+
+        latitude = coalesce(lat_sources)
+        longitude = coalesce(lon_sources)
+
+        if latitude is not None:
+            df["latitude"] = latitude
+        if longitude is not None:
+            df["longitude"] = longitude
+
+        drop_candidates = {
+            "lat",
+            "lon",
+            "Latitude",
+            "Longitude",
+        }
+        existing = drop_candidates.intersection(df.columns)
+        if existing:
+            df = df.drop(columns=list(existing))
 
         return df
 
@@ -87,7 +139,7 @@ class Cleaner():
         """
         try:
             return float(v)
-        except TypeError:
+        except (TypeError, ValueError):
             return None
 
     @staticmethod
@@ -161,5 +213,3 @@ class Cleaner():
 
         df["phone"] = df["phone"].apply(clean_phone)
         return df
-
-

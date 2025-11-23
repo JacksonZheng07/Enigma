@@ -110,8 +110,9 @@ class TestNormalization(unittest.TestCase):
         cleaned = Cleaner.clean_coordinates(df)
         df_shape = cleaned.shape
         print(cleaned.columns.to_list)
-        self.assertAlmostEqual(cleaned["lat"].iloc[0], 40.123)
-        self.assertAlmostEqual(cleaned["lon"].iloc[0], -73.456)
-        self.assertEqual(df_shape, (1,2))
+        self.assertAlmostEqual(cleaned["latitude"].iloc[0], 40.123)
+        self.assertAlmostEqual(cleaned["longitude"].iloc[0], -73.456)
+        self.assertEqual(df_shape, (1, 2))
 
-unittest.main()
+if __name__ == "__main__":
+    unittest.main()

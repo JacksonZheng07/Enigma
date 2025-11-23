@@ -1,104 +1,97 @@
-# Gov Data Pipeline
+﻿# Gov Data Pipeline
 
-Modular, testable pipeline skeleton for ingesting, normalizing, analyzing, and exporting government datasets.
+Modern, test-driven skeleton for loading, normalizing, enriching, and exporting government datasets into Enigma’s SMB ontology.
 
-## Layout
-- `data/`: sample raw, processed, and example datasets for local experiments.
-- `src/`: modular pipeline code grouped by responsibility (ingestion, normalization, feature detection, etc.).
-- `tests/`: pytest-style smoke tests that validate each subsystem's surface API.
+## What’s inside
 
-## Getting Started
-1. Create a `.env` file from `.env.example` and provide credentials for any APIs.
-2. Install dependencies with `pip install -e .` or `pip install -r requirements.txt` once defined.
-3. Use `src/pipeline.py` as the orchestrator entry point when wiring real data sources.
+| Layer | Location | Responsibilities |
+| --- | --- | --- |
+| **Ingestion** | `src/ingestion` | Detect file types, load CSV/JSON/API sources via `IngestManager`. |
+| **Normalization** | `src/normalization` | Alias mapping, null cleanup, coordinate/phone/ZIP fixes, orchestrated by `Normalizer`. |
+| **Feature Detection** | `src/feature_detection` | Unique-value stats, regex patterns, heuristics, schema fingerprinting exposed via `FeatureManager`. |
+| **ML Row Filtering** | `src/ml_process` | XGBoost-backed classifier that drops low-confidence rows and persists its model. |
+| **Routing & Enrichment** | `src/routing` | Strategy router + strategies (address, geo, financial, demographic, generic) to append derived annotations. |
+| **Ontology Formatter** | `src/ontology` | Converts normalized rows into Enigma’s legal/brand/location ontology and prepares MCP metadata payloads. |
+| **Exports** | `src/export` | JSON exporter used for cleaned/enriched/ontology outputs. |
+| **Pipeline** | `src/pipeline.py` | Runs ingest → normalize → ML filter → feature detection → routing → ontology export for each file in `data/raw/`. |
+| **Tests** | `tests/` | Pytest coverage for normalization, feature detection, routing, exporter, ML, ontology. |
+
+## Getting started
+
+1. **Install dependencies** (adjust command as needed):
+   ```bash
+   pip install -e .
+   ```
+2. **Inspect sample data** under `data/raw/`.
+3. **Run the pipeline**:
+   ```bash
+   python3 src/pipeline.py
+   ```
+   Outputs land in:
+
+   | File | Description |
+   | --- | --- |
+   | `data/clean/<name>_clean.csv` | Fully normalized records. |
+   | `data/processed/<name>_profile.json` | Schema fingerprint + per-column stats/tags. |
+   | `data/processed/<name>_ontology.json` | Legal/brand/location payload conforming to Enigma’s SMB ontology. |
+   | `data/processed/<name>_mcp_metadata.json` | Full raw/alias metadata for MCP servers. |
+   | `data/processed/<name>_row_classifier.json` | Persisted ML model used to drop low-quality rows. |
+4. **Run tests**:
+   ```bash
+   python3 -m pytest
+   ```
+
+## Architecture overview
 
 ```
-   Raw Data
+Raw Data (CSV/JSON/API)
       │
       ▼
-[1] Ingestion Layer       (CSV/JSON/XML → Pandas DataFrame)
+[1] Ingestion  →  pandas.DataFrame
       │
       ▼
-[2] Normalization Layer   (clean types, fix names)
+[2] Normalization  →  canonical columns, cleaned types
       │
       ▼
-[3] Feature Detection     (unique values, regex, patterns)
+[3] ML Row Filter  →  drops low-confidence rows (saved model)
       │
       ▼
-[4] Rule Engine           (decide semantic meaning)
+[4] Feature Detection  →  uniqueness stats, heuristics, schema fingerprint
       │
       ▼
-[5] Strategy Router       (pick export logic)
+[5] Strategy Router + Enrichment  →  address/geo/financial/demographic/generic tags
       │
       ▼
-[6] Export Layer          (JSON, SQL, Parquet, etc.)
+[6] Ontology Formatter  →  Enigma SMB contract + MCP metadata
+      │
+      ▼
+[7] Exports  →  cleaned CSV + JSON artefacts
 ```
 
-# File Structure: #
+## Repository layout
+
 ```
 gov-data-pipeline/
-│
 ├── README.md
-├── requirements.txt
-├── .gitignore
-│
+├── pyproject.toml
 ├── data/
-│   ├── raw/
-│   ├── processed/
-│   └── examples/
-│
+│   ├── raw/         # drop source files here
+│   ├── clean/       # normalized CSV outputs
+│   └── processed/   # profiles, ontology JSON, metadata, classifier models
 ├── src/
 │   ├── ingestion/
-│   │   ├── loaders/
-│   │   │   ├── csv_loader.py
-│   │   │   ├── json_loader.py
-│   │   │   ├── xml_loader.py
-│   │   │   └── api_loader.py
-│   │   ├── file_detector.py
-│   │   └── ingest_manager.py
-│   │
 │   ├── normalization/
-│   │   ├── cleaner.py
-│   │   ├── type_casting.py
-│   │   ├── alias_mapper.py
-│   │   └── normalizer.py
-│   │
 │   ├── feature_detection/
-│   │   ├── unique_value_analyzer.py
-│   │   ├── pattern_detector.py
-│   │   ├── schema_fingerprint.py
-│   │   ├── heuristics_engine.py
-│   │   └── feature_manager.py
-│   │
+│   ├── ml_process/
 │   ├── routing/
-│   │   ├── strategy_router.py
-│   │   ├── base_strategy.py
-│   │   ├── strategies/
-│   │   │   ├── address_strategy.py
-│   │   │   ├── financial_strategy.py
-│   │   │   ├── geo_strategy.py
-│   │   │   ├── categorical_strategy.py
-│   │   │   └── generic_strategy.py
-│   │
+│   ├── ontology/
 │   ├── export/
-│   │   ├── export_manager.py
-│   │   ├── json_exporter.py
-│   │   ├── parquet_exporter.py
-│   │   └── sql_exporter.py
-│   │
-│   ├── utils/
-│   │   ├── logger.py
-│   │   ├── config.py
-│   │   └── helpers.py
-│   │
 │   └── pipeline.py
-│
 └── tests/
-    ├── test_ingestion.py
+    ├── test_export.py
+    ├── test_feature_detection.py
+    ├── test_ml_process.py
     ├── test_normalization.py
-    ├── test_features.py
-    ├── test_rules.py
-    ├── test_routing.py
-    └── test_export.py
-
+    ├── test_ontology.py
+    └── test_routing.py
 ```

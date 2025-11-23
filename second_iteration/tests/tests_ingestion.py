@@ -49,6 +49,7 @@ class TestIngest(unittest.TestCase):
         API, .json or .csv
         """
         with self.assertRaises(ValueError):
-            self.ingest.load_data('data/raw/testing_data.txt')
+            self.ingest.load_data('data/test_data/testing_data.txt')
 
-unittest.main()
+if __name__ == "__main__":
+    unittest.main()
