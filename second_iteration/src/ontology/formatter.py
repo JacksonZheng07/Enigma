@@ -346,4 +346,3 @@ def _build_canonical_address(
     if not parts:
         return None
     return ", ".join(parts)
-

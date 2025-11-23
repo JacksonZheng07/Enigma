@@ -46,6 +46,11 @@ class Pipeline:
                 continue
 
             print(f"Processing file: {file_path.name}")
+            dataset_key = file_path.stem
+            clean_dataset_dir = self.clean_dir / dataset_key
+            processed_dataset_dir = self.processed_dir / dataset_key
+            clean_dataset_dir.mkdir(parents=True, exist_ok=True)
+            processed_dataset_dir.mkdir(parents=True, exist_ok=True)
 
             try:
                 df = self.ingestor.load_data(file_path)
@@ -64,7 +69,7 @@ class Pipeline:
                         df = df.loc[keep_mask].reset_index(drop=True)
                         records = [record for record, keep in zip(records, keep_mask) if keep]
                         print(f"Dropped {dropped} suspect rows via ML filter")
-                    model_path = self.processed_dir / f"{file_path.stem}_row_classifier.json"
+                    model_path = processed_dataset_dir / "row_classifier.json"
                     self.row_classifier.save(model_path)
 
                 features = self.feature_manager.evaluate(records)
@@ -77,10 +82,10 @@ class Pipeline:
                     f" strategy={strategy.name}"
                 )
 
-                output_path = self.clean_dir / f"{file_path.stem}_clean.csv"
+                output_path = clean_dataset_dir / "clean.csv"
                 df.to_csv(output_path, index=False)
 
-                profile_path = self.processed_dir / f"{file_path.stem}_profile.json"
+                profile_path = processed_dataset_dir / "profile.json"
                 profile_path.write_text(json.dumps(features, indent=2))
 
                 ontology_records, metadata_records = format_ontology_records(
@@ -88,9 +93,9 @@ class Pipeline:
                     provider=file_path.stem,
                     provider_path=file_path,
                 )
-                ontology_path = self.processed_dir / f"{file_path.stem}_ontology.json"
+                ontology_path = processed_dataset_dir / "ontology.json"
                 export_json(ontology_records, ontology_path)
-                metadata_path = self.processed_dir / f"{file_path.stem}_mcp_metadata.json"
+                metadata_path = processed_dataset_dir / "mcp_metadata.json"
                 export_json(metadata_records, metadata_path)
 
                 print(f"Saved cleaned CSV to {output_path}")

@@ -50,6 +50,7 @@ class StrategyRouter:
 
 
 def _collect_values(columns: Mapping[str, dict[str, object]], key: str) -> set[str]:
+    """Return the lowercase union of list-like metadata entries for `key`."""
     values: set[str] = set()
     for meta in columns.values():
         for value in meta.get(key, []) or []:
@@ -58,11 +59,13 @@ def _collect_values(columns: Mapping[str, dict[str, object]], key: str) -> set[s
 
 
 def _looks_geo(column_names: Mapping[str, object], tags: set[str]) -> bool:
+    """Heuristic: detect obvious geo datasets (lat/lon columns or geo tags)."""
     geo_columns = {"lat", "lon", "latitude", "longitude", "geometry", "geom"}
     return bool(geo_columns & set(column_names) or {"geo"}.intersection(tags))
 
 
 def _looks_address(column_names: Mapping[str, object], tags: set[str]) -> bool:
+    """Heuristic: treat address-heavy datasets as address strategy candidates."""
     address_tokens = {
         "address",
         "address_building",
@@ -78,11 +81,13 @@ def _looks_address(column_names: Mapping[str, object], tags: set[str]) -> bool:
 
 
 def _looks_financial(column_names: Mapping[str, object]) -> bool:
+    """Heuristic: presence of finance keywords triggers financial strategy."""
     financial_tokens = {"revenue", "amount", "fine", "fee", "payment", "tax", "cost"}
     return any(any(token in name for token in financial_tokens) for name in column_names)
 
 
 def _looks_demographic(column_names: Mapping[str, object]) -> bool:
+    """Heuristic: demographic token presence uses the demographic strategy."""
     demographic_tokens = {
         "population",
         "median_age",

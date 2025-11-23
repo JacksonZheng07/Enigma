@@ -16,13 +16,34 @@ _FEATURE_KEYS = [
     "empty_text_ratio",
     "numeric_zero_ratio",
     "short_text_ratio",
+    "essential_missing_ratio",
 ]
+
+_ESSENTIAL_FIELDS = {
+    "dca_license_number",
+    "license_number",
+    "provider_record_id",
+    "business_name",
+    "canonical_legal_entity_name",
+    "street_address",
+    "address_city",
+    "city",
+    "address_state",
+    "state",
+    "zip_code",
+    "latitude",
+    "longitude",
+    "contact_phone_number",
+    "phone",
+    "phone_number",
+}
 
 _DEFAULT_MEANS = {
     "null_ratio": 0.15,
     "empty_text_ratio": 0.05,
     "numeric_zero_ratio": 0.1,
     "short_text_ratio": 0.1,
+    "essential_missing_ratio": 0.3,
 }
 
 _DEFAULT_SCALES = {
@@ -30,14 +51,16 @@ _DEFAULT_SCALES = {
     "empty_text_ratio": 0.05,
     "numeric_zero_ratio": 0.08,
     "short_text_ratio": 0.05,
+    "essential_missing_ratio": 0.2,
 }
 
-_HEURISTIC_BIAS = -1.2
+_HEURISTIC_BIAS = -1.0
 _HEURISTIC_WEIGHTS = {
     "null_ratio": 3.0,
     "empty_text_ratio": 1.6,
     "numeric_zero_ratio": 1.2,
     "short_text_ratio": 1.3,
+    "essential_missing_ratio": 4.0,
 }
 
 
@@ -113,7 +136,6 @@ class RowDropClassifier:
         kept = [record for record, drop in zip(records, drop_mask) if not drop]
         return kept, sum(drop_mask)
 
-    # ------------------------------------------------------------------ persistence
     def save(self, path: Path | str) -> None:
         """Persist the trained classifier to disk."""
         metadata = {
@@ -146,7 +168,7 @@ class RowDropClassifier:
             raw = base64.b64decode(booster_blob.encode("ascii"))
             try:
                 classifier.booster.load_model(bytearray(raw))
-            except TypeError:  # pragma: no cover - fallback for older versions
+            except TypeError: 
                 temp = Path(path).with_suffix(".xgb.tmp")
                 temp.write_bytes(raw)
                 classifier.booster.load_model(str(temp))
@@ -156,7 +178,6 @@ class RowDropClassifier:
             classifier.model_type = "heuristic"
         return classifier
 
-    # ------------------------------------------------------------------ helpers
     def _recompute_feature_stats(self, features: list[dict[str, float]]) -> None:
         self.feature_means = {}
         self.feature_scales = {}
@@ -176,6 +197,8 @@ class RowDropClassifier:
                 or row["empty_text_ratio"] > 0.35
                 or (row["null_ratio"] > 0.25 and row["short_text_ratio"] > 0.2)
                 or row["numeric_zero_ratio"] > 0.5
+                or row["essential_missing_ratio"] > 0.4
+                or (row["essential_missing_ratio"] > 0.25 and row["null_ratio"] > 0.2)
             )
             labels.append(1 if drop else 0)
         return labels
@@ -210,6 +233,7 @@ class RowDropClassifier:
         empty_text = 0
         short_text = 0
         numeric_zero = 0
+        essential_missing = 0
 
         for value in row.values():
             if value is None or (isinstance(value, float) and math.isnan(value)):
@@ -230,9 +254,24 @@ class RowDropClassifier:
                 if value == 0:
                     numeric_zero += 1
 
+        for field in _ESSENTIAL_FIELDS:
+            if not _has_value(row.get(field)):
+                essential_missing += 1
+
         return {
             "null_ratio": null_like / total_fields,
             "empty_text_ratio": empty_text / total_fields,
             "numeric_zero_ratio": numeric_zero / total_fields,
             "short_text_ratio": short_text / total_fields,
+            "essential_missing_ratio": essential_missing / max(len(_ESSENTIAL_FIELDS), 1),
         }
+
+
+def _has_value(value: object) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, float) and math.isnan(value):
+        return False
+    return True

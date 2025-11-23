@@ -9,9 +9,7 @@ from ml_process.row_classifier import RowDropClassifier
 
 
 class TestRowDropClassifier(unittest.TestCase):
-    """
-    Validate the lightweight row drop classifier.
-    """
+    """Validate the lightweight row drop classifier."""
 
     def test_flags_sparse_row(self) -> None:
         """Sparse rows with null-like values should be flagged for dropping."""
@@ -45,6 +43,22 @@ class TestRowDropClassifier(unittest.TestCase):
         probabilities = loaded.predict_proba(records)
         self.assertEqual(len(probabilities), len(records))
         path.unlink(missing_ok=True)
+
+    def test_drop_when_essential_fields_missing(self) -> None:
+        """Missing IDs/coordinates should force a drop."""
+        records = [
+            {
+                "dca_license_number": "123",
+                "business_name": "Acme",
+                "latitude": 40.0,
+                "longitude": -73.0,
+                "contact_phone_number": "2125550199",
+            },
+            {"business_name": "Unknown"},
+        ]
+        classifier = RowDropClassifier(threshold=0.5)
+        drops = classifier.predict_drop(records, auto_fit=True)
+        self.assertEqual(drops, [False, True])
 
 
 if __name__ == "__main__":
