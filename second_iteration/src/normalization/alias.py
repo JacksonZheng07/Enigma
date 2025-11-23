@@ -333,6 +333,11 @@ ALIASES: Dict[str, str] = {
     "District": "district",
     "District Name": "district",
 
+    "location": 'location',
+    'cord_pair': 'location',
+    "cord": 'location',
+
+
     # ZIP / Postal Code (including your originals)
     "ZIP": "zip_code",
     "Zip": "zip_code",
@@ -397,9 +402,11 @@ ALIASES: Dict[str, str] = {
     "Tel": "phone",
     "Contact Phone Number": "phone",
     "Daytime Phone": "phone",
+    'phone': 'phone',
 
     "Fax": "fax",
     "Fax Number": "fax",
+    'fax' : 'fax',
 
     "Email": "email",
     "E-mail": "email",

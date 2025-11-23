@@ -5,6 +5,7 @@ Testing for normalization
 import unittest
 import pandas as pd
 from normalization.alias_mapper import AliasMapper
+from normalization.cleaner import Cleaner
 
 class TestNormalization(unittest.TestCase):
     """
@@ -64,5 +65,53 @@ class TestNormalization(unittest.TestCase):
         # Test values are still correct
         self.assertEqual(normalized_df["zip_code"].iloc[0], "10001")
         self.assertEqual(normalized_df["business_name"].iloc[0], "Foo Corp")
+
+    def test_clean_zip_codes(self) -> None:
+        """
+        Test Zip Code Cleaner 
+        """
+        df = pd.DataFrame({
+            "Address ZIP": ["10001", '100010001', '11111-1111', None, '1qa3wsdfhjk'],
+        })
+
+        df = AliasMapper.map_aliases(df)
+        cleaned = Cleaner().clean_zip_codes(df)
+        self.assertEqual(cleaned.columns.to_list(), ['zip_code'])
+        self.assertEqual(cleaned['zip_code'].iloc[0], '10001')
+        self.assertEqual(cleaned['zip_code'].iloc[1], '10001-0001')
+        self.assertEqual(cleaned['zip_code'].iloc[2], '11111-1111')
+        self.assertEqual(cleaned['zip_code'].iloc[3], None)
+        self.assertEqual(cleaned['zip_code'].iloc[4], None)
+
+    def test_clean_phone(self) -> None:
+        """
+        Test Clean Phone Number
+        """
+        df = pd.DataFrame({
+            "phone" : ['1111111111', None, '+1111111111', '111-111-1111', '+(1)-111-111-1111']
+        })
+        df = AliasMapper.map_aliases(df)
+        cleaned = Cleaner().clean_phone_numbers(df)
+        self.assertEqual(cleaned['phone'].iloc[0], '1111111111')
+        self.assertEqual(cleaned['phone'].iloc[1], None)
+        self.assertEqual(cleaned['phone'].iloc[2], '1111111111')
+        self.assertEqual(cleaned['phone'].iloc[3], '1111111111')
+        self.assertEqual(cleaned['phone'].iloc[4], '1111111111')
+
+    def test_parse_valid_location_string(self) -> None:
+        """
+        Should extract valid lat/lon from '(lat, lon)' string.
+        """
+        df = pd.DataFrame({
+            "location": ["(40.123, -73.456)"]
+        })
+
+        df = AliasMapper.map_aliases(df)
+        cleaned = Cleaner.clean_coordinates(df)
+        df_shape = cleaned.shape
+        print(cleaned.columns.to_list)
+        self.assertAlmostEqual(cleaned["lat"].iloc[0], 40.123)
+        self.assertAlmostEqual(cleaned["lon"].iloc[0], -73.456)
+        self.assertEqual(df_shape, (1,2))
 
 unittest.main()
