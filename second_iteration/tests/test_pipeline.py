@@ -38,12 +38,9 @@ class TestPipelineIntegration(unittest.TestCase):
             dataset_processed = processed_dir / "testing_data"
             ontology_path = dataset_processed / "ontology.json"
             metadata_path = dataset_processed / "mcp_metadata.json"
-            profile_path = dataset_processed / "profile.json"
-
             self.assertTrue(dataset_clean.exists(), "Clean CSV missing")
             self.assertTrue(ontology_path.exists(), "Ontology export missing")
             self.assertTrue(metadata_path.exists(), "MCP metadata missing")
-            self.assertTrue(profile_path.exists(), "Profile missing")
 
             ontology_records = json.loads(ontology_path.read_text())
             metadata_records = json.loads(metadata_path.read_text())

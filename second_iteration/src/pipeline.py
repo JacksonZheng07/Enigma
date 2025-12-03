@@ -4,7 +4,6 @@ Entry point for orchestrating the gov data pipeline.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import sys
 
@@ -68,25 +67,13 @@ class Pipeline:
                         keep_mask = [not flag for flag in drop_mask]
                         df = df.loc[keep_mask].reset_index(drop=True)
                         records = [record for record, keep in zip(records, keep_mask) if keep]
-                        print(f"Dropped {dropped} suspect rows via ML filter")
-                    model_path = processed_dataset_dir / "row_classifier.json"
-                    self.row_classifier.save(model_path)
 
                 features = self.feature_manager.evaluate(records)
                 strategy = self.router.resolve(features)
                 enriched_records = [strategy.apply(record) for record in records]
-                print(
-                    "Profiled:"
-                    f" {features['column_count']} columns,"
-                    f" fingerprint={features['schema_fingerprint']}"
-                    f" strategy={strategy.name}"
-                )
 
                 output_path = clean_dataset_dir / "clean.csv"
                 df.to_csv(output_path, index=False)
-
-                profile_path = processed_dataset_dir / "profile.json"
-                profile_path.write_text(json.dumps(features, indent=2))
 
                 ontology_records, metadata_records = format_ontology_records(
                     records,
@@ -99,7 +86,6 @@ class Pipeline:
                 export_json(metadata_records, metadata_path)
 
                 print(f"Saved cleaned CSV to {output_path}")
-                print(f"Wrote feature profile to {profile_path}")
                 print(f"Exported ontology records to {ontology_path}")
                 print(f"Wrote MCP metadata to {metadata_path}")
 

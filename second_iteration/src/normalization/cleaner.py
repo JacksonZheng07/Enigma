@@ -213,3 +213,65 @@ class Cleaner():
 
         df["phone"] = df["phone"].apply(clean_phone)
         return df
+
+    @staticmethod
+    def clean_addresses(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Normalize free-form address strings into structured components.
+        """
+        df = pd.DataFrame(df)
+
+        if "address" not in df.columns:
+            return df
+
+        secondary_pattern = re.compile(
+            r"(?:\b(?:apt|apartment|unit|suite|ste|floor|fl)\b|\#)\s*[\w-]*$", re.IGNORECASE
+        )
+
+        def split_address(raw: object) -> tuple[object, object, object]:
+            if raw is None or (isinstance(raw, float) and pd.isna(raw)):
+                return (None, None, None)
+
+            normalized = re.sub(r"\s+", " ", str(raw)).strip()
+            if not normalized:
+                return (None, None, None)
+
+            secondary = None
+            match = secondary_pattern.search(normalized)
+            if match:
+                secondary = match.group(0).strip()
+                normalized = normalized[: match.start()].strip()
+
+            building = None
+            street = normalized or None
+
+            match = re.match(r"^(?P<number>\d+[A-Za-z]?)\s+(?P<street>.+)$", normalized)
+            if match:
+                building = match.group("number")
+                street = match.group("street").strip() or None
+
+            return (building, street, secondary)
+
+        parsed = df["address"].apply(split_address)
+        buildings = parsed.apply(lambda parts: parts[0])
+        streets = parsed.apply(lambda parts: parts[1])
+        secondary = parsed.apply(lambda parts: parts[2])
+
+        if "address_building" in df.columns:
+            df["address_building"] = df["address_building"].fillna(buildings)
+        else:
+            df["address_building"] = buildings
+
+        if "address_street_name" in df.columns:
+            df["address_street_name"] = df["address_street_name"].fillna(streets)
+        else:
+            df["address_street_name"] = streets
+
+        if "secondary_address_street_name" in df.columns:
+            df["secondary_address_street_name"] = df["secondary_address_street_name"].fillna(
+                secondary
+            )
+        else:
+            df["secondary_address_street_name"] = secondary
+
+        return df
