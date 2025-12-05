@@ -37,10 +37,10 @@ class Normalizer:
         if has_lat and has_lon or has_location:
             df = Cleaner.clean_coordinates(df)
 
-        if 'zip' in columns:
+        if "zip_code" in columns:
             df = Cleaner.clean_zip_codes(df)
-        if 'phone' in columns:
+        if "phone" in columns:
             df = Cleaner.clean_phone_numbers(df)
-        if 'address' in columns:
+        if "address" in columns:
             df = Cleaner.clean_addresses(df)
         return df

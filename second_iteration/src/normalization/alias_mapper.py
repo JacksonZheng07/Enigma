@@ -8,10 +8,10 @@ Example:
 """
 
 from __future__ import annotations
-import re
-from typing import Dict
+from typing import Dict, Mapping, Union
 import pandas as pd
-from .alias import ALIASES
+from .alias import NORMALIZED_ALIASES, standardize_alias_key
+
 
 class AliasMapper:
     """
@@ -26,81 +26,63 @@ class AliasMapper:
             - replaces special chars with underscores
             - lowercases text
             - applies alias mapping
-
-        ---------------------------------------------------
-        Parameters:
-            df : pd.DataFrame
-
-        ---------------------------------------------------
-        Return 
-            pd.DataFrame
         """
-        # standardize formatting
-        standardized = {
-            col: AliasMapper.standardize(col)
-            for col in df.columns
-        }
+        standardized = {col: AliasMapper.standardize(col) for col in df.columns}
 
-        # apply alias mapping
         normalized = {
-            old: ALIASES.get(new, new)
-            for old, new in standardized.items()
+            original: NORMALIZED_ALIASES.get(standardized_col, standardized_col)
+            for original, standardized_col in standardized.items()
         }
 
-        return df.rename(columns=normalized)
+        renamed = df.rename(columns=normalized)
+        return AliasMapper._coalesce_duplicate_columns(renamed)
 
     @staticmethod
-    def map_aliases(record: Dict[str, object]) -> Dict[str, object]:
+    def map_aliases(
+        record: Union[pd.DataFrame, Mapping[str, object]]
+    ) -> Union[pd.DataFrame, Dict[str, object]]:
         """
-        Normalize keys of a single record (dict).
-        -----------------------------------------------
-        Parameter:
-            record: Dict[str, object]
-        
-        -----------------------------------------------
-        Returns:
-            Dict[str, object]
+        Normalize keys for either a DataFrame or a single mapping.
         """
-        return {
-            ALIASES.get(AliasMapper.standardize(key), AliasMapper.standardize(key)): value
-            for key, value in record.items()
-        }
+        if isinstance(record, pd.DataFrame):
+            return AliasMapper.normalize_columns(record)
+
+        if not isinstance(record, Mapping):
+            raise TypeError("record must be a mapping or pandas DataFrame")
+
+        normalized_keys: Dict[str, object] = {}
+        for key, value in record.items():
+            standardized_key = AliasMapper.standardize(key)
+            canonical = NORMALIZED_ALIASES.get(standardized_key, standardized_key)
+            normalized_keys[canonical] = value
+        return normalized_keys
 
     @staticmethod
     def standardize(col: str) -> str:
+        """Expose the shared alias normalization helper."""
+        return standardize_alias_key(col)
+
+    @staticmethod
+    def _coalesce_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
         """
-        Standardizes a column string into snake_case:
-            - trims whitespace
-            - replaces punctuation with underscores
-            - collapses repeated underscores
-        -----------------------------------------------
-        Parameter:
-            col: str
+        Combine duplicate columns created after renaming.
 
-        -----------------------------------------------
-        Returns:
-            str
+        If multiple columns share the same canonical name, keep the first one
+        encountered and fill missing values from later duplicates. This ensures
+        downstream cleaners (which expect unique column labels) operate on a
+        single column per canonical field.
         """
-        
-        # replace punctuation with spaces
-        col = (
-            col.strip()
-               .replace("-", " ")
-               .replace(".", " ")
-               .replace("/", " ")
-               .replace(",", " ")
-               .replace("?", " ")
-               .replace("!", " ")
-               .replace("@", " ")
-               .replace("%", " ")
-               .replace("&", " ")
-        )
+        if not df.columns.duplicated().any():
+            return df
 
-        col = re.sub(r"\s+", " ", col)
+        coalesced: Dict[str, pd.Series] = {}
+        order: list[str] = []
+        for index, column in enumerate(df.columns):
+            series = df.iloc[:, index]
+            if column not in coalesced:
+                coalesced[column] = series
+                order.append(column)
+            else:
+                coalesced[column] = coalesced[column].combine_first(series)
 
-        # convert spaces to underscores
-        col = col.replace(" ", "_").lower()
-
-        # collapse multiple underscores (VERY IMPORTANT)
-        col = re.sub(r"_+", "_", col)
-        return col.rstrip('_')
+        return pd.DataFrame({column: coalesced[column] for column in order}, index=df.index)

@@ -1,21 +1,25 @@
-"""
-Entry point for orchestrating the gov data pipeline.
-"""
+"""Entry point for orchestrating the gov data pipeline."""
 
 from __future__ import annotations
 
 from pathlib import Path
-import sys
 
-sys.path.append(".")
-
-from ingestion.ingest import IngestManager
-from normalization.normalizer import Normalizer
-from feature_detection.feature_manager import FeatureManager
-from routing.strategy_router import StrategyRouter
-from export.json_exporter import export_json
-from ml_process.row_classifier import RowDropClassifier
-from ontology.formatter import format_records as format_ontology_records
+if __package__ in (None, ""):
+    from ingestion.ingest import IngestManager
+    from normalization.normalizer import Normalizer
+    from feature_detection.feature_manager import FeatureManager
+    from routing.strategy_router import StrategyRouter
+    from export.json_exporter import export_json
+    from ml_process.row_classifier import RowDropClassifier
+    from ontology.formatter import format_records as format_ontology_records
+else:
+    from .ingestion.ingest import IngestManager
+    from .normalization.normalizer import Normalizer
+    from .feature_detection.feature_manager import FeatureManager
+    from .routing.strategy_router import StrategyRouter
+    from .export.json_exporter import export_json
+    from .ml_process.row_classifier import RowDropClassifier
+    from .ontology.formatter import format_records as format_ontology_records
 
 
 class Pipeline:
@@ -97,7 +101,7 @@ class Pipeline:
 
 def main() -> None:
     """Run the entire parsing pipeline."""
-    workspace = Path("./data")
+    workspace = Path(__file__).resolve().parents[1] / "data"
     pipeline = Pipeline(workspace)
     pipeline.run()
 

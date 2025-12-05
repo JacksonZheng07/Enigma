@@ -7,7 +7,10 @@ from pathlib import Path
 import re
 from typing import Iterable
 
-from normalization.cleaner import Cleaner
+try:  # pragma: no cover - defensive for script execution
+    from ..normalization.cleaner import Cleaner
+except ImportError:  # pragma: no cover
+    from normalization.cleaner import Cleaner
 
 STATE_ABBREVIATIONS = {
     "alabama": "AL",

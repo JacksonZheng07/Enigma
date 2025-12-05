@@ -2,8 +2,39 @@
 some of the alias
 """
 from typing import Dict
+import re
 
-ALIASES: Dict[str, str] = {
+
+def standardize_alias_key(col: str) -> str:
+    """
+    Standardize alias keys into snake_case so we can match provider fields.
+    """
+    col = (
+        col.strip()
+        .replace("-", " ")
+        .replace(".", " ")
+        .replace("/", " ")
+        .replace(",", " ")
+        .replace("?", " ")
+        .replace("!", " ")
+        .replace("@", " ")
+        .replace("%", " ")
+        .replace("&", " ")
+    )
+    col = re.sub(r"\s+", " ", col)
+    col = col.replace(" ", "_").lower()
+    col = re.sub(r"_+", "_", col)
+    return col.rstrip("_")
+
+
+def _normalize_aliases(source: Dict[str, str]) -> Dict[str, str]:
+    normalized: Dict[str, str] = {}
+    for alias, canonical in source.items():
+        normalized[standardize_alias_key(alias)] = canonical
+    return normalized
+
+
+RAW_ALIASES: Dict[str, str] = {
     # BUSINESS NAME / DBA / ENTITY NAME
     "Business Name": "business_name",
     "Bus Name": "business_name",
@@ -158,7 +189,7 @@ ALIASES: Dict[str, str] = {
     "renewal_date": "renewal_date",
 
     "Valid From": "valid_from",
-    "valid_from": "valid_form",
+    "valid_from": "valid_from",
     "Valid To": "valid_to",
     "Valid Until": "valid_to",
     "valid_to": "valid_to",
@@ -512,3 +543,6 @@ ALIASES: Dict[str, str] = {
     "Object ID": "id",
     "id": "id"
 }
+
+ALIASES: Dict[str, str] = dict(RAW_ALIASES)
+NORMALIZED_ALIASES: Dict[str, str] = _normalize_aliases(RAW_ALIASES)

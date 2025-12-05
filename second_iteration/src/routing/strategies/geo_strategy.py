@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from ..base_strategy import BaseStrategy
-from normalization.cleaner import Cleaner
+
+try:  # pragma: no cover
+    from ...normalization.cleaner import Cleaner
+except ImportError:  # pragma: no cover
+    from normalization.cleaner import Cleaner
 
 
 class GeoStrategy(BaseStrategy):
