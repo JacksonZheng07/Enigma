@@ -1,8 +1,6 @@
 """Facade that surfaces feature detection decisions."""
 
-from __future__ import annotations
-
-from collections import defaultdict
+from collections import OrderedDict
 
 from .heuristics_engine import run_heuristics
 from .pattern_detector import detect_patterns
@@ -28,17 +26,13 @@ class FeatureManager:
                 "columns": {},
             }
 
-        column_values: dict[str, list[object]] = defaultdict(list)
-        column_order: list[str] = []
+        column_values: OrderedDict[str, list[object]] = OrderedDict()
         for record in records:
             for column, value in (record or {}).items():
-                if column not in column_values:
-                    column_order.append(column)
-                column_values[column].append(value)
+                column_values.setdefault(column, []).append(value)
 
         column_reports: dict[str, dict[str, object]] = {}
-        for column in column_order:
-            values = column_values[column]
+        for column, values in column_values.items():
             summary = unique_value_summary(values)
 
             string_values = [value for value in values if isinstance(value, str)]
@@ -57,9 +51,10 @@ class FeatureManager:
                 "tags": tags,
             }
 
-        return {
+        result = {
             "row_count": len(records),
-            "column_count": len(column_order),
-            "schema_fingerprint": fingerprint(column_order),
+            "column_count": len(column_values),
+            "schema_fingerprint": fingerprint(list(column_values.keys())),
             "columns": column_reports,
         }
+        return result

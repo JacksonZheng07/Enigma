@@ -1,9 +1,9 @@
 """Combines analyzers to produce feature tags."""
 
-from __future__ import annotations
+from typing import Mapping
 
 
-def run_heuristics(record: dict[str, object]) -> set[str]:
+def run_heuristics(record: Mapping[str, object]) -> set[str]:
     """
     Return heuristic feature tags for a column.
 
@@ -11,13 +11,13 @@ def run_heuristics(record: dict[str, object]) -> set[str]:
     by :func:`unique_value_summary`, and the raw `values` list.
     """
     tags: set[str] = set()
-    summary: dict[str, float] = record.get("summary", {}) or {}
+    summary = record.get("summary", {}) or {}
     name = str(record.get("name", "")).lower()
 
-    distinct_ratio = float(summary.get("distinct_ratio", 0.0))
-    null_ratio = float(summary.get("null_ratio", 0.0))
-    most_frequent_ratio = float(summary.get("most_frequent_ratio", 0.0))
-    non_null_count = float(summary.get("non_null_count", 0.0))
+    distinct_ratio = _safe_ratio(summary, "distinct_ratio")
+    null_ratio = _safe_ratio(summary, "null_ratio")
+    most_frequent_ratio = _safe_ratio(summary, "most_frequent_ratio")
+    non_null_count = _safe_ratio(summary, "non_null_count")
 
     if name in {"id", "identifier"} or name.endswith("_id"):
         tags.add("likely_identifier")
@@ -35,3 +35,12 @@ def run_heuristics(record: dict[str, object]) -> set[str]:
         tags.add("sparse_values")
 
     return tags
+
+
+def _safe_ratio(summary: Mapping[str, object], key: str) -> float:
+    """Best-effort conversion of the summary values to floats."""
+    value = summary.get(key, 0.0)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0

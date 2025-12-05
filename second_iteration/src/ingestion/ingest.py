@@ -1,12 +1,9 @@
-"""
-Coordinates ingestion loaders and file routing.
-"""
-
-from __future__ import annotations
+"""Coordinates ingestion loaders and file routing."""
 
 from pathlib import Path
+from typing import Mapping, Optional, Protocol, Union
+
 import pandas as pd
-import os
 
 from .loaders.api_loader import APILoader
 from .loaders.csv_loader import CSVLoader
@@ -20,13 +17,22 @@ class IngestManager:
     Dispatches to the appropriate loader based on file type or source.
     """
 
-    loaders = {
-        ".csv": CSVLoader(),
-        ".json": JSONLoader(),
-        "api": APILoader(),
-    }
+    def __init__(
+        self,
+        detector: Optional[FileDetector] = None,
+        loaders: Optional[Mapping[str, "LoaderProtocol"]] = None,
+    ) -> None:
+        self._detector = detector or FileDetector()
+        self.loaders: dict[str, LoaderProtocol] = dict(
+            loaders
+            or {
+                ".csv": CSVLoader(),
+                ".json": JSONLoader(),
+                "api": APILoader(),
+            }
+        )
 
-    def load_data(self, source: str | Path) -> pd.DataFrame:
+    def load_data(self, source: Union[str, Path]) -> pd.DataFrame:
         """
         Route ingestion to the appropriate loader based on the file extension
         or API prefix.
@@ -41,20 +47,23 @@ class IngestManager:
         pd.DataFrame
             The loaded dataset as a pandas DataFrame.
         """
-        #Checks if it is an api request, done through checking if it starts with http
-        if isinstance(source, str) and source.startswith("http"):
-            loader = self.loaders["api"]
-            return loader.load(source)
+        if isinstance(source, str) and source.startswith(("http://", "https://")):
+            return self.loaders["api"].load(source)
 
-        path = Path(source)
-        file_type = FileDetector().detect_file_type(path)
+        path = Path(source).expanduser()
+        if not path.exists():
+            raise FileNotFoundError(f"File not found: {path}")
 
-        if os.path.exists(path=path) is False:
-            raise FileNotFoundError
-
-        #Raising Error if the file suffix isnt a .json or a .csv
-        if file_type not in self.loaders:
+        file_type = self._detector.detect_file_type(path)
+        loader = self.loaders.get(file_type)
+        if loader is None:
             raise ValueError(f"No loader registered for file type: {file_type}")
 
-        loader = self.loaders[file_type]
         return loader.load(path)
+
+
+class LoaderProtocol(Protocol):
+    """Tiny protocol so loaders can be type-checked."""
+
+    def load(self, source: Union[str, Path]) -> pd.DataFrame:
+        ...

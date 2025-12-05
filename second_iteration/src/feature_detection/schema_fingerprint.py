@@ -1,7 +1,4 @@
 """Creates schema fingerprints for dataset similarity."""
-
-from __future__ import annotations
-
 import hashlib
 
 
@@ -16,13 +13,6 @@ def fingerprint(columns: list[str]) -> str:
     if not columns:
         return ""
 
-    # Preserve the original order but de-duplicate successive repeats.
-    ordered = []
-    seen = set()
-    for name in columns:
-        if name not in seen:
-            ordered.append(name)
-            seen.add(name)
-
+    ordered = list(dict.fromkeys(columns))
     digest = hashlib.sha1("||".join(ordered).encode("utf-8"))
     return digest.hexdigest()[:16]
